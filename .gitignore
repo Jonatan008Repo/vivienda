@@ -1,0 +1,27 @@
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# dependencies
+agente-vivienda-puebla/node_modules
+agente-vivienda-puebla/.env
+agente-vivienda-puebla/node_modules/@babel/compat-data/data/corejs2-built-ins.json
+agente-vivienda-puebla/.pnp
+agente-vivienda-puebla/.pnp.js
+
+# testing
+agente-vivienda-puebla/coverage
+
+# production
+agente-vivienda-puebla/build
+
+# misc
+agente-vivienda-puebla/.DS_Store
+agente-vivienda-puebla/.env.local
+agente-vivienda-puebla/.env.development.local
+agente-vivienda-puebla/.env.test.local
+agente-vivienda-puebla/.env.production.local
+
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+backend/node_modules
+backend/.env

@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cd agente-vivienda-puebla*)",
+      "Bash(npm start*)",
+      "Bash(npm test*)",
+      "Bash(npm run build*)",
+      "Read(agente-vivienda-puebla/**/*)",
+      "Read(CLAUDE.md)",
+      "Read(GUIA_PROYECTO_COMPLETO.md)"
+    ]
+  }
+}
