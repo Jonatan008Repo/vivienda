@@ -336,13 +336,16 @@ export default function AgenteViviendaPuebla() {
   const [proyectoSeleccionado, setProyectoSeleccionado] = useState(null);
   const [comparacion, setComparacion] = useState([]);
   const [mostrarFiltros, setMostrarFiltros] = useState(true);
+  const [ordenPrecio, setOrdenPrecio] = useState('puntuacion'); // 'puntuacion' | 'asc' | 'desc'
 
   // Cargar proyectos desde API, con fallback al array local
   useEffect(() => {
     const fetchProyectos = async () => {
       try {
         const response = await proyectosAPI.getAll();
-        setProyectos(response.data);
+        // Normalizar _id de MongoDB a id para consistencia con datos locales
+        const data = response.data.map(p => ({ ...p, id: p.id || String(p._id) }));
+        setProyectos(data);
         setApiError(null);
       } catch (err) {
         console.warn('API no disponible, usando datos locales:', err.message);
@@ -364,8 +367,12 @@ export default function AgenteViviendaPuebla() {
       const cumpleEstado = filtros.estado === 'todos' || proyecto.estado === filtros.estado;
 
       return cumplePrecio && cumpleTipo && cumpleRecamaras && cumpleEstado;
-    }).sort((a, b) => b.puntuacion - a.puntuacion);
-  }, [filtros, proyectos]);
+    }).sort((a, b) => {
+      if (ordenPrecio === 'asc') return a.precio - b.precio;
+      if (ordenPrecio === 'desc') return b.precio - a.precio;
+      return b.puntuacion - a.puntuacion;
+    });
+  }, [filtros, proyectos, ordenPrecio]);
 
   const formatPrecio = (precio) => {
     return new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN', minimumFractionDigits: 0 }).format(precio);
@@ -379,9 +386,13 @@ export default function AgenteViviendaPuebla() {
     return Math.round(mensualidad);
   };
 
+  const getProyectoId = (p) => String(p.id ?? p._id ?? '');
+
   const toggleComparacion = (proyecto) => {
-    if (comparacion.find(p => p.id === proyecto.id)) {
-      setComparacion(comparacion.filter(p => p.id !== proyecto.id));
+    const pid = getProyectoId(proyecto);
+    if (!pid) return; // sin ID válido, no hacer nada
+    if (comparacion.find(p => getProyectoId(p) === pid)) {
+      setComparacion(comparacion.filter(p => getProyectoId(p) !== pid));
     } else if (comparacion.length < 3) {
       setComparacion([...comparacion, proyecto]);
     }
@@ -600,18 +611,60 @@ export default function AgenteViviendaPuebla() {
                     Rango: {formatPrecio(filtros.precioMin)} - {formatPrecio(filtros.precioMax)}
                   </p>
                 </div>
-                {comparacion.length > 0 && (
-                  <div className="text-sm bg-orange-100 text-orange-700 px-4 py-2 rounded-full font-semibold">
-                    {comparacion.length} seleccionados para comparar
-                  </div>
-                )}
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-gray-500 font-semibold">Ordenar:</span>
+                  <button
+                    onClick={() => setOrdenPrecio('puntuacion')}
+                    className={`text-xs px-3 py-1.5 rounded-lg font-semibold transition ${
+                      ordenPrecio === 'puntuacion'
+                        ? 'bg-orange-600 text-white'
+                        : 'bg-gray-100 hover:bg-gray-200 text-gray-600'
+                    }`}
+                  >
+                    Relevancia
+                  </button>
+                  <button
+                    onClick={() => setOrdenPrecio('asc')}
+                    className={`text-xs px-3 py-1.5 rounded-lg font-semibold transition ${
+                      ordenPrecio === 'asc'
+                        ? 'bg-orange-600 text-white'
+                        : 'bg-gray-100 hover:bg-gray-200 text-gray-600'
+                    }`}
+                  >
+                    Precio ↑
+                  </button>
+                  <button
+                    onClick={() => setOrdenPrecio('desc')}
+                    className={`text-xs px-3 py-1.5 rounded-lg font-semibold transition ${
+                      ordenPrecio === 'desc'
+                        ? 'bg-orange-600 text-white'
+                        : 'bg-gray-100 hover:bg-gray-200 text-gray-600'
+                    }`}
+                  >
+                    Precio ↓
+                  </button>
+                  {comparacion.length > 0 && (
+                    <div className="flex items-center gap-2 ml-2">
+                      <span className="text-sm bg-orange-100 text-orange-700 px-3 py-1.5 rounded-full font-semibold">
+                        {comparacion.length} para comparar
+                      </span>
+                      <button
+                        onClick={() => setComparacion([])}
+                        className="text-xs bg-red-100 hover:bg-red-200 text-red-600 px-3 py-1.5 rounded-full font-semibold transition"
+                        title="Limpiar selección"
+                      >
+                        Limpiar ✕
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
 
               <div className="grid gap-6">
                 {proyectosFiltrados.map((proyecto) => {
                   const estadoBadge = getEstadoBadge(proyecto.estado);
                   const tipoBadge = getTipoBadge(proyecto.tipo);
-                  const enComparacion = comparacion.find(p => p.id === proyecto.id);
+                  const enComparacion = comparacion.find(p => getProyectoId(p) === getProyectoId(proyecto));
 
                   return (
                     <div
@@ -775,7 +828,7 @@ export default function AgenteViviendaPuebla() {
                     <tr className="border-b-2 border-gray-200">
                       <th className="text-left py-4 px-4 text-gray-700 font-bold">Característica</th>
                       {comparacion.map(proyecto => (
-                        <th key={proyecto.id} className="py-4 px-4">
+                        <th key={getProyectoId(proyecto)} className="py-4 px-4">
                           <div className="text-center">
                             <div className="font-bold text-gray-900 mb-2">{proyecto.nombre}</div>
                             <button
